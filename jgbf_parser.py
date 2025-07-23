@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-JGBF Excel Parser
+JGBF Excel Parser - Fixed Version
 Reads extracted Excel files and generates JGBF_DATA output in the exact format required.
 Processes data from tittle3.py output and creates standardized time series data.
 """
@@ -76,15 +76,508 @@ class JGBFParser:
         logger.info(f"  • Input folder: {self.input_folder}")
         logger.info(f"  • Output folder: {self.output_folder}")
 
-    def extract_instrument_from_subtitle(self, subtitle: str) -> Optional[str]:
-        """Extract instrument code from subtitle using flexible matching."""
-        # Clean up subtitle for better matching
-        subtitle_clean = subtitle.replace("（", "(").replace("）", ")")
+    def get_template_columns(self):
+        """Return the exact column structure from the JGBF_DATA template."""
+        # This is the exact column order and structure from your template file
+        columns = [
+            # JGB 10-year Futures - Total, Proprietary & Brokerage
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.PROPRIETARY.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.PROPRIETARY.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.PROPRIETARY.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.PROPRIETARY.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.BROKERAGE.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.BROKERAGE.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.BROKERAGE.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.BROKERAGE.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.TOTAL.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.TOTAL.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.TOTAL.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.JGB10YEARFUTURES.TRADINGVALUE.TOTAL.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Balance'
+            },
+            
+            # JGB 10-year Futures - Brokerage Breakdown
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INSTITUTIONS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Institutions, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INSTITUTIONS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Institutions, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INSTITUTIONS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Institutions, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INSTITUTIONS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Institutions, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INDIVIDUALS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Individuals, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INDIVIDUALS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Individuals, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INDIVIDUALS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Individuals, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.INDIVIDUALS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Individuals, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.FOREIGNERS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Foreigners, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.FOREIGNERS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Foreigners, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.FOREIGNERS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.FOREIGNERS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.SECURITIES_COS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.SECURITIES_COS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.SECURITIES_COS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.JGB10YEARFUTURES.TRADINGVALUE.SECURITIES_COS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, JGB(10-year) Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Balance'
+            },
+            
+            # Mini-10-year JGB Futures (Cash-Settled) - Total, Proprietary & Brokerage
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.PROPRIETARY.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.PROPRIETARY.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.PROPRIETARY.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.PROPRIETARY.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.BROKERAGE.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.BROKERAGE.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.BROKERAGE.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.BROKERAGE.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.TOTAL.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.TOTAL.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.TOTAL.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.TOTAL.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Balance'
+            },
+            
+            # Mini-10-year JGB Futures (Cash-Settled) - Brokerage Breakdown
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INSTITUTIONS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Institutions, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INSTITUTIONS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Institutions, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INSTITUTIONS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Institutions, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INSTITUTIONS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Institutions, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INDIVIDUALS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Individuals, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INDIVIDUALS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Individuals, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INDIVIDUALS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Individuals, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.INDIVIDUALS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Individuals, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.FOREIGNERS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Foreigners, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.FOREIGNERS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Foreigners, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.FOREIGNERS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.FOREIGNERS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.SECURITIES_COS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.SECURITIES_COS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.SECURITIES_COS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI10YEARJGBFUTURESCASHSETTLED.TRADINGVALUE.SECURITIES_COS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-10-year JGB Futures (Cash-Settled), Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Balance'
+            },
+            
+            # Mini-20-year JGB Futures - Total, Proprietary & Brokerage
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.PROPRIETARY.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.PROPRIETARY.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.PROPRIETARY.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.PROPRIETARY.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.BROKERAGE.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.BROKERAGE.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.BROKERAGE.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.BROKERAGE.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.TOTAL.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.TOTAL.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.TOTAL.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.MINI20YEARJGBFUTURES.TRADINGVALUE.TOTAL.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Balance'
+            },
+            
+            # Mini-20-year JGB Futures - Brokerage Breakdown
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INSTITUTIONS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Institutions, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INSTITUTIONS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Institutions, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INSTITUTIONS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Institutions, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INSTITUTIONS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Institutions, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INDIVIDUALS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Individuals, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INDIVIDUALS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Individuals, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INDIVIDUALS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Individuals, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.INDIVIDUALS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Individuals, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.FOREIGNERS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Foreigners, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.FOREIGNERS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Foreigners, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.FOREIGNERS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.FOREIGNERS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.SECURITIES_COS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.SECURITIES_COS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.SECURITIES_COS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.MINI20YEARJGBFUTURES.TRADINGVALUE.SECURITIES_COS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, mini-20-year JGB Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Balance'
+            },
+            
+            # 3-Month TONA Futures - Total, Proprietary & Brokerage
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.PROPRIETARY.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.PROPRIETARY.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.PROPRIETARY.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.PROPRIETARY.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Proprietary, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.BROKERAGE.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.BROKERAGE.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.BROKERAGE.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.BROKERAGE.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Brokerage, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.TOTAL.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.TOTAL.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.TOTAL.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.TOTAL_PROPRIETARY_BROKERAGE.3MONTHTONAFUTURES.TRADINGVALUE.TOTAL.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Total, Proprietary ＆ Brokerage, Trading Value, Total, Purchases, Balance'
+            },
+            
+            # 3-Month TONA Futures - Brokerage Breakdown
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INSTITUTIONS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Institutions, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INSTITUTIONS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Institutions, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INSTITUTIONS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Institutions, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INSTITUTIONS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Institutions, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INDIVIDUALS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Individuals, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INDIVIDUALS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Individuals, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INDIVIDUALS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Individuals, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.INDIVIDUALS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Individuals, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.FOREIGNERS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Foreigners, Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.FOREIGNERS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Foreigners, Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.FOREIGNERS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.FOREIGNERS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Foreigners, Purchases, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.SECURITIES_COS.SALES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.SECURITIES_COS.SALES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Sales, Balance'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.SECURITIES_COS.PURCHASES.VALUE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Value'
+            },
+            {
+                'code': 'JGBF.BROKERAGE_BREAKDOWN.3MONTHTONAFUTURES.TRADINGVALUE.SECURITIES_COS.PURCHASES.BALANCE.W',
+                'description': 'Trading by Type of Investors, 3-Month TONA Futures, Breakdown of Brokerage, Trading Value, Securities Cos., Purchases, Balance'
+            }
+        ]
         
+        return columns
+
+    def extract_instrument_from_subtitle(self, subtitle: str) -> Optional[str]:
+        """Extract instrument code from subtitle using enhanced flexible matching."""
+        # Clean up subtitle for better matching - handle all parentheses variations
+        subtitle_clean = subtitle.replace("（", "(").replace("）", ")").replace("、", ",")
+        
+        # Enhanced matching with Japanese text recognition
+        logger.info(f"🔍 Analyzing subtitle: {subtitle}")
+        logger.info(f"🔍 Cleaned subtitle: {subtitle_clean}")
+        
+        # More flexible matching - check for key patterns
+        if "JGB(10-year)" in subtitle_clean or "長期国債先物" in subtitle_clean:
+            if "mini" in subtitle_clean.lower() or "ミニ" in subtitle_clean or "現金決済型ミニ" in subtitle_clean:
+                logger.info("✅ Matched: MINI10YEARJGBFUTURESCASHSETTLED")
+                return "MINI10YEARJGBFUTURESCASHSETTLED"
+            else:
+                logger.info("✅ Matched: JGB10YEARFUTURES")
+                return "JGB10YEARFUTURES"
+        elif "mini-20-year" in subtitle_clean.lower() or "20年" in subtitle_clean:
+            logger.info("✅ Matched: MINI20YEARJGBFUTURES")
+            return "MINI20YEARJGBFUTURES"
+        elif "3-Month TONA" in subtitle_clean or "TONA" in subtitle_clean:
+            logger.info("✅ Matched: 3MONTHTONAFUTURES")
+            return "3MONTHTONAFUTURES"
+            
+        # Fallback to original mapping for any missed cases
         for key, code in self.instrument_mapping.items():
             if key in subtitle_clean:
+                logger.info(f"✅ Fallback matched: {code}")
                 return code
-        logger.warning(f"Could not map subtitle to instrument: {subtitle}")
+                
+        logger.warning(f"❌ Could not map subtitle to instrument: {subtitle}")
         return None
 
     def extract_date_from_filename(self, filename: str) -> Optional[str]:
@@ -357,7 +850,7 @@ class JGBFParser:
         return all_results
 
     def generate_output_file(self, all_data: List[Dict], output_filename: str):
-        """Generate the final JGBF_DATA Excel file with proper column ordering."""
+        """Generate the final JGBF_DATA Excel file using the exact template structure."""
         if not all_data:
             logger.warning("No data to generate output file")
             return
@@ -379,70 +872,37 @@ class JGBFParser:
             all_dates.update(ts_data['data_points'].keys())
         sorted_dates = sorted(list(all_dates))
         
-        # Define the proper column ordering
-        instrument_order = ["JGB10YEARFUTURES", "MINI10YEARJGBFUTURESCASHSETTLED", "MINI20YEARJGBFUTURES", "3MONTHTONAFUTURES"]
-        table_order = ["TOTAL_PROPRIETARY_BROKERAGE", "BROKERAGE_BREAKDOWN"]
-        category_order_main = ["PROPRIETARY", "BROKERAGE", "TOTAL"]
-        category_order_brokerage = ["INSTITUTIONS", "INDIVIDUALS", "FOREIGNERS", "SECURITIES_COS"]
-        subcategory_order = ["SALES", "PURCHASES"]
-        value_order = ["VALUE", "BALANCE"]
-        
-        # Sort codes according to the proper order
-        def get_sort_key(code):
-            parts = code.split('.')
-            if len(parts) < 7:
-                return (999, 999, 999, 999, 999, 999)  # Put malformed codes at the end
-                
-            try:
-                table_type = parts[1]
-                instrument = parts[2]
-                category = parts[4]
-                subcategory = parts[5]
-                value_type = parts[6]
-                
-                # Get sort indices
-                instr_idx = instrument_order.index(instrument) if instrument in instrument_order else 999
-                table_idx = table_order.index(table_type) if table_type in table_order else 999
-                
-                if table_type == "TOTAL_PROPRIETARY_BROKERAGE":
-                    cat_idx = category_order_main.index(category) if category in category_order_main else 999
-                else:
-                    cat_idx = category_order_brokerage.index(category) if category in category_order_brokerage else 999
-                    
-                subcat_idx = subcategory_order.index(subcategory) if subcategory in subcategory_order else 999
-                value_idx = value_order.index(value_type) if value_type in value_order else 999
-                
-                return (instr_idx, table_idx, cat_idx, subcat_idx, value_idx)
-            except (ValueError, IndexError):
-                return (999, 999, 999, 999, 999)
-        
-        # Sort codes by the defined order
-        codes = sorted(time_series_data.keys(), key=get_sort_key)
+        # Get the exact template structure
+        template_columns = self.get_template_columns()
         
         # Create output workbook
         wb = Workbook()
         ws = wb.active
         ws.title = "JGBF_DATA"
         
-        # Set up headers
+        # Set up headers using the exact template structure
         # Row 1: Time series codes
         ws['A1'] = "Date"
-        for col_idx, code in enumerate(codes, start=2):
-            ws.cell(row=1, column=col_idx, value=code)
+        for col_idx, column_def in enumerate(template_columns, start=2):
+            ws.cell(row=1, column=col_idx, value=column_def['code'])
             
         # Row 2: Descriptions  
         ws['A2'] = "Description"
-        for col_idx, code in enumerate(codes, start=2):
-            description = time_series_data[code]['description']
-            ws.cell(row=2, column=col_idx, value=description)
+        for col_idx, column_def in enumerate(template_columns, start=2):
+            ws.cell(row=2, column=col_idx, value=column_def['description'])
             
         # Data rows
         for row_idx, date in enumerate(sorted_dates, start=3):
             ws.cell(row=row_idx, column=1, value=date)
             
-            for col_idx, code in enumerate(codes, start=2):
-                value = time_series_data[code]['data_points'].get(date, "")
-                ws.cell(row=row_idx, column=col_idx, value=value)
+            for col_idx, column_def in enumerate(template_columns, start=2):
+                code = column_def['code']
+                if code in time_series_data:
+                    value = time_series_data[code]['data_points'].get(date, "")
+                    ws.cell(row=row_idx, column=col_idx, value=value)
+                else:
+                    # Column exists in template but no data found
+                    ws.cell(row=row_idx, column=col_idx, value="")
                 
         # Apply formatting
         header_font = Font(bold=True)
@@ -455,15 +915,29 @@ class JGBFParser:
         output_path = self.output_folder / output_filename
         wb.save(output_path)
         logger.info(f"💾 Output saved: {output_path}")
-        logger.info(f"  • {len(codes)} time series")
+        logger.info(f"  • {len(template_columns)} template columns")
         logger.info(f"  • {len(sorted_dates)} date periods")
+        logger.info(f"  • {len([col for col in template_columns if col['code'] in time_series_data])} columns with data")
         
-        # Log the column order for verification
-        logger.info("📋 Column order:")
-        for i, code in enumerate(codes[:10]):  # Show first 10
-            logger.info(f"  {i+1}: {code}")
-        if len(codes) > 10:
-            logger.info(f"  ... and {len(codes) - 10} more columns")
+        # Log which columns have data and which are empty
+        columns_with_data = []
+        columns_without_data = []
+        for column_def in template_columns:
+            if column_def['code'] in time_series_data:
+                columns_with_data.append(column_def['code'])
+            else:
+                columns_without_data.append(column_def['code'])
+                
+        logger.info(f"📊 Data coverage:")
+        logger.info(f"  • Columns with data: {len(columns_with_data)}")
+        logger.info(f"  • Columns without data: {len(columns_without_data)}")
+        
+        if columns_without_data:
+            logger.info("📝 Columns without data (will be empty):")
+            for i, code in enumerate(columns_without_data[:5]):  # Show first 5
+                logger.info(f"  - {code}")
+            if len(columns_without_data) > 5:
+                logger.info(f"  ... and {len(columns_without_data) - 5} more")
 
     def process_all_files(self):
         """Process all Excel files in the input folder."""
@@ -471,7 +945,8 @@ class JGBFParser:
             logger.error(f"Input folder '{self.input_folder}' does not exist!")
             return
             
-        excel_files = list(self.input_folder.glob("*_extracted.xlsx"))
+        # Skip Excel temporary files
+        excel_files = [f for f in self.input_folder.glob("*_extracted.xlsx") if not f.name.startswith("~$")]
         if not excel_files:
             logger.error(f"No extracted Excel files found in '{self.input_folder}'")
             return
@@ -499,10 +974,11 @@ class JGBFParser:
 
 
 def main():
-    print("📊 JGBF Excel Parser")
-    print("=" * 50)
+    print("📊 JGBF Excel Parser - Fixed Version")
+    print("=" * 55)
     print("🚀 Converts extracted Excel files to JGBF_DATA format")
-    print("=" * 50)
+    print("🔧 Includes fixes for subtitle mapping and complete template")
+    print("=" * 55)
     
     parser = JGBFParser(
         input_folder="extracted_data",
