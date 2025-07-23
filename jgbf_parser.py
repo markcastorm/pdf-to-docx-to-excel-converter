@@ -556,21 +556,21 @@ class JGBFParser:
         logger.info(f"🔍 Analyzing subtitle: {subtitle}")
         logger.info(f"🔍 Cleaned subtitle: {subtitle_clean}")
         
-        # More flexible matching - check for key patterns
-        if "JGB(10-year)" in subtitle_clean or "長期国債先物" in subtitle_clean:
+        # CRITICAL: Check for 20-year FIRST before checking for general mini/ミニ
+        if "mini-20-year" in subtitle_clean.lower() or "超長期国債先物" in subtitle_clean or ("20年" in subtitle_clean and "ミニ" in subtitle_clean):
+            logger.info("✅ Matched: MINI20YEARJGBFUTURES")
+            return "MINI20YEARJGBFUTURES"
+        elif "3-Month TONA" in subtitle_clean or "TONA" in subtitle_clean:
+            logger.info("✅ Matched: 3MONTHTONAFUTURES")
+            return "3MONTHTONAFUTURES"
+        elif "JGB(10-year)" in subtitle_clean or "長期国債先物" in subtitle_clean:
             if "mini" in subtitle_clean.lower() or "ミニ" in subtitle_clean or "現金決済型ミニ" in subtitle_clean:
                 logger.info("✅ Matched: MINI10YEARJGBFUTURESCASHSETTLED")
                 return "MINI10YEARJGBFUTURESCASHSETTLED"
             else:
                 logger.info("✅ Matched: JGB10YEARFUTURES")
                 return "JGB10YEARFUTURES"
-        elif "mini-20-year" in subtitle_clean.lower() or "20年" in subtitle_clean:
-            logger.info("✅ Matched: MINI20YEARJGBFUTURES")
-            return "MINI20YEARJGBFUTURES"
-        elif "3-Month TONA" in subtitle_clean or "TONA" in subtitle_clean:
-            logger.info("✅ Matched: 3MONTHTONAFUTURES")
-            return "3MONTHTONAFUTURES"
-            
+                
         # Fallback to original mapping for any missed cases
         for key, code in self.instrument_mapping.items():
             if key in subtitle_clean:
